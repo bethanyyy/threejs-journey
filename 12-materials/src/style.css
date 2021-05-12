@@ -11,6 +11,7 @@ body
     background-color: #fff7ea;
     font-family: 'Courier New', Courier, monospace;
     height: 100vh;
+    z-index: 1;
 }
 
 .webgl
@@ -21,10 +22,30 @@ body
     outline: none;
 }
 
+/* .container
+{
+    width: 100%;
+    height: 100vh;
+    padding-top: 10rem;
+    padding-left: 10rem;
+} */
+
 .container
 {
     width: 100%;
     height: 100vh;
-    padding-top: 1rem;
-    padding-left: 1rem;
+    display: grid;
+    place-items: center;
+}
+
+.content
+{
+    padding-bottom: 5rem;
+}
+
+p
+{
+    /* clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); */
+    display: inline-block; /* don't take up 100% of parent width */
+    font-size: 1.1rem;
 }
