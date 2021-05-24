@@ -13,10 +13,17 @@ let sceneL, sceneR, groupL
 let loadingManager, textureLoader
 let meshCubeL, meshCubeR, axesHelper, meshTestL
 let dir, tempVec, localTempVec
+let diffuseMat, diffuseMat02
 
 let world, moveDirection
 let oldElapsedTime = 0
 let ifMove = false
+let velocity
+let euler = new THREE.Euler()
+let quat = new THREE.Quaternion()
+let threeHeight, threeWidth = 0
+
+let dirLight01
 
 let mouseX = 0
 let mouseY = 0
@@ -30,12 +37,23 @@ const sizes = {
 }
 
 let splitPos = sizes.width / 2
+let splitPosPercent = .5
+const slider = document.querySelector('.slider')
 
 const parameters = {
     ambColor: 0xffffff,
     dir01Color: 0xffe49c,
     sceneLColor: 0x42bcf5,
-    sceneRColor: 0xfff7ea
+    sceneRColor: 0xfff7ea,
+    diffuseCol01: 0xff73c5,
+    diffuseCol02: 0x73ffc7
+}
+
+const parameters02 = {
+    sceneLColor: 0xffffff,
+    sceneRColor: 0x000000,
+    diffuseCol01: 0x000000,
+    diffuseCol02: 0xffffff
 }
 
 const boxMaterial = new CANNON.Material('box')
@@ -82,14 +100,15 @@ function init()
     // sceneR.add(axesHelper.clone())
 
     // Camera
-    camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000)
-    camera.position.set(0, 0, 15)
+    camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 1000)
+    camera.position.set(0, 0, 22)
     // sceneL.add(camera)
 
     // Controls
     controls = new OrbitControls(camera, canvas)
     controls.enableDamping = true
     // controls.target = mesh_ico.position
+    controls.enabled = false
 
     // Renderer
     renderer = new THREE.WebGLRenderer({
@@ -107,43 +126,22 @@ function init()
     setUpDebugger()
     otherPluginsSetup()
     initLoaders()
-    initLighting()
     createObjects()
+    initLighting()
+    calculateViewportWidth()
+    
     TrackMouseMove()
+    controlSlider()
+    changeColorSet()
 
-    dir = new THREE.Vector3()
+    // dir = new THREE.Vector3()
     // tempVec = dir.subVectors(meshTestL.position, meshCubeL.position).normalize()
     // console.log(tempVec)
     // localTempVec = meshCubeL.worldToLocal(tempVec)
     // console.log(localTempVec)
 
-
     window.addEventListener('resize', onWindowResize)
-    // window.addEventListener('mousedown', onMouseClick(new CANNON.Vec3(-1, 0, 0)))
-
-    document.addEventListener('pointerdown', (event) => {
-        ifMove = true
-
-        if ((event.clientX / sizes.width - .5) < 0)
-        {
-            moveDirection = 0
-        }
-        else
-        {
-            moveDirection = 1
-        }
-
-        // for (const object of objectsToUpdate)
-        // {
-        //     // if (object.body.position.x >= -3)
-        //     moveDirection = new CANNON.Vec3(-2, 0, 0)
-        //     const forcePoint = new CANNON.Vec3(object.body.position.x , object.body.position.y + .4, object.body.position.z)
-        //     // object.body.applyForce(moveDirection, forcePoint)
-        //     object.body.applyImpulse(moveDirection, forcePoint)
-        //     object.body.angularDamping = 0
-        // }
-    })
-
+    window.addEventListener('pointerdown', onPointerDownBox)
 
 }
 
@@ -181,38 +179,26 @@ function initLoaders()
 
 function createObjects()
 {
-    // Loading Textures
-    const colorTexture = textureLoader.load('/textures/door/color.jpg')
-    // const colorTexture = textureLoader.load('/textures/checkerboard-1024x1024.png')
-    
-    colorTexture.minFilter = THREE.NearestFilter
-    // colorTexture.generateMipmaps = false
-    // colorTexture.magFilter = THREE.NearestFilter
-
     // Creating Threejs Geometries
     const geometryCube = new THREE.BoxBufferGeometry(1, 1, 1, 1)
-    const geometryPlane = new THREE.PlaneBufferGeometry(20, 5, 1, 1)
+    const geometryPlane = new THREE.PlaneBufferGeometry(sizes.width, 5, 1, 1)
 
     // Creating Materials
-    const diffuseMat = new THREE.MeshPhongMaterial({ 
-        color: 0xff0000,
+    diffuseMat = new THREE.MeshPhongMaterial({ 
+        color: parameters.diffuseCol01,
     })
 
-    const diffuseMat02 = new THREE.MeshPhongMaterial({ 
-        color: 0x00ff00,
+    diffuseMat02 = new THREE.MeshPhongMaterial({ 
+        color: parameters.diffuseCol02,
     })
 
-    const planeMatL = new THREE.ShadowMaterial({
-        opacity: .5
-    })
-
-    const planeMatR = new THREE.ShadowMaterial({
+    const planeMat = new THREE.ShadowMaterial({
         opacity: .5
     })
 
     // Creating Threejs Meshes
-    createBox(geometryCube, diffuseMat, 1, 1, 1, {x:0, y:0, z:0}, sceneL)
-    createBox(geometryCube, diffuseMat02, 1, 1, 1, {x:0, y:0, z:0}, sceneR)
+    createBox(geometryCube, diffuseMat, 1, 1, 1, {x:3, y:0, z:0}, sceneL)
+    createBox(geometryCube, diffuseMat02, 1, 1, 1, {x:3, y:0, z:0}, sceneR)
 
     // // Left Side
     // meshCubeL = new THREE.Mesh(geometryCube, diffuseMat)
@@ -220,7 +206,7 @@ function createObjects()
     // meshTestL = new THREE.Mesh(geometryCube, diffuseMat)
     // meshTestL.position.set(-7, 0, 0) 
 
-    const meshPlaneL = new THREE.Mesh(geometryPlane, planeMatL)
+    const meshPlaneL = new THREE.Mesh(geometryPlane, planeMat)
     meshPlaneL.rotation.x = - Math.PI/2
     meshPlaneL.position.y = -3
     meshPlaneL.receiveShadow = true
@@ -233,7 +219,7 @@ function createObjects()
     // meshCubeR = new THREE.Mesh(geometryCube, diffuseMat02)
     // meshCubeR.rotation.set(Math.PI/6, Math.PI/4, 0)
 
-    const meshPlaneR = new THREE.Mesh(geometryPlane, planeMatR)
+    const meshPlaneR = new THREE.Mesh(geometryPlane, planeMat)
     meshPlaneR.rotation.x = - Math.PI/2
     meshPlaneR.position.y = -3
     meshPlaneR.receiveShadow = true
@@ -269,7 +255,7 @@ function createBox(geometry, material, width, height, depth, position, scene)
         material: boxMaterial,
         collisionFilterGroup: COLLGROUP1,
         collisionFilterMask: COLLGROUP2,
-        angularDamping: 1
+        // angularDamping: 1
     })
     boxBody.position.copy(position)
     world.addBody(boxBody)
@@ -282,16 +268,27 @@ function createBox(geometry, material, width, height, depth, position, scene)
 
 function initLighting()
 {
-    const ambientLight = new THREE.AmbientLight(parameters.ambColor, .5)
+    const ambientLight = new THREE.AmbientLight(parameters.ambColor, .8)
     sceneL.add(ambientLight.clone())
     sceneR.add(ambientLight.clone())
     
-    const dirLight01 = new THREE.DirectionalLight(parameters.dir01Color, 1)
-    dirLight01.position.set(1, 1, 0)
+    dirLight01 = new THREE.DirectionalLight(parameters.dir01Color, .5)
+    dirLight01.position.set(5, 8, 0)
     dirLight01.castShadow = true
     dirLight01.shadowDarkness = .5
+
+    // const dirLight01Helper = new THREE.DirectionalLightHelper(dirLight01, 1)
+    // sceneR.add(dirLight01Helper)
+
+    // Threejs is using Orth Camera internally for directional lights
+    dirLight01.shadow.camera.near = 1
+    dirLight01.shadow.camera.far = 30
+    dirLight01.shadow.camera.top = 5
+    dirLight01.shadow.camera.bottom = -30
+
     sceneL.add(dirLight01.clone())
     sceneR.add(dirLight01.clone())
+
 
     // Debug
     guiLights
@@ -316,9 +313,128 @@ function TrackMouseMove()
     })
 }
 
-function moveBox(targetBody, direction)
+function onPointerDownBox(event)
 {
-    targetBody.applyForce(direction, targetBody.position)
+    if (objectsToUpdate[0] && Math.abs(objectsToUpdate[0].body.velocity.y) <= 1)
+    {
+        ifMove = true
+
+        if (event.clientX / sizes.width < splitPosPercent)
+        {
+            moveDirection = 0
+        }
+        else
+        {
+            moveDirection = 1
+        }
+    }
+}
+
+function controlSlider()
+{
+    
+
+    function onPointerDownSlider(event)
+    {
+        if (event.isPrimary === false) return
+
+        window.removeEventListener('pointerdown', onPointerDownBox)
+
+        window.addEventListener('pointermove', onPointerMoveSlider)
+        window.addEventListener('pointerup', onPointerUpSlider)
+
+        console.log("hihi")
+
+    }
+
+    function onPointerUpSlider()
+    {
+        window.addEventListener('pointerdown', onPointerDownBox)
+
+        window.removeEventListener('pointermove', onPointerMoveSlider)
+        window.removeEventListener('pointerup', onPointerUpSlider)
+    }
+
+    function  onPointerMoveSlider(event)
+    {
+        if (event.isPrimary === false) return;
+
+        splitPos = Math.max(0, Math.min(sizes.width, event.pageX))
+        splitPosPercent = splitPos / sizes.width
+        slider.style.left = splitPos - (slider.offsetWidth / 2) + "px"
+    }
+
+    slider.addEventListener('pointerdown', onPointerDownSlider)
+}
+
+function calculateViewportWidth()
+{
+    const dist = 22
+
+    let vFOV = THREE.MathUtils.degToRad( camera.fov ); // convert vertical fov to radians
+
+    threeHeight = 2 * Math.tan( vFOV / 2 ) * dist; // visible height
+
+    threeWidth = threeHeight * camera.aspect;           // visible width
+}
+
+function changeColorSet()
+{
+    const firstSet = document.querySelector('.firstSet')
+    const secSet = document.querySelector('.secondSet')
+    const leftTxt = document.querySelector('.leftText')
+    const rightTxt = document.querySelector('.rightText')
+    const liLis = document.querySelectorAll('li')
+
+    function onPointerDownFirstSet(){
+        window.removeEventListener('pointerdown', onPointerDownBox)
+
+        sceneL.background = new THREE.Color(parameters.sceneLColor)
+        sceneR.background = new THREE.Color(parameters.sceneRColor)
+
+        diffuseMat.color = new THREE.Color(parameters.diffuseCol01)
+        diffuseMat02.color = new THREE.Color(parameters.diffuseCol02)
+
+        rightTxt.style.color = '#000000'
+        for (let i = 0; i < liLis.length; i++)
+        {
+            liLis[i].style.backgroundColor = '#000000'
+        }
+        
+        window.addEventListener('pointerup', onPointerUpFirstSet)
+    }
+
+    function onPointerUpFirstSet()
+    {
+        window.addEventListener('pointerdown', onPointerDownBox)
+    }
+
+    function onPointerDownSecSet()
+    {
+        window.removeEventListener('pointerdown', onPointerDownBox)
+
+        sceneL.background = new THREE.Color(parameters02.sceneLColor)
+        sceneR.background = new THREE.Color(parameters02.sceneRColor)
+
+        diffuseMat.color = new THREE.Color(parameters02.diffuseCol01)
+        diffuseMat02.color = new THREE.Color(parameters02.diffuseCol02)
+
+        rightTxt.style.color = '#ffffff'
+        for (let i = 0; i < liLis.length; i++)
+        {
+            liLis[i].style.backgroundColor = '#ffffff'
+        }
+
+        window.addEventListener('pointerup', onPointerUpSecSet)
+    }
+
+    function onPointerUpSecSet()
+    {
+        window.addEventListener('pointerdown', onPointerDownBox)
+    }
+
+    firstSet.addEventListener('pointerdown', onPointerDownFirstSet)
+    secSet.addEventListener('pointerdown', onPointerDownSecSet)
 }
 
 function onWindowResize()
@@ -332,7 +448,11 @@ function onWindowResize()
     camera.updateProjectionMatrix()
 
     // Update renderer
-    splitPos = sizes.width / 2
+    splitPos = sizes.width * splitPosPercent
+    slider.style.left = splitPos - (slider.offsetWidth / 2) + "px"
+
+    calculateViewportWidth()
+
     renderer.setSize(sizes.width, sizes.height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 }
@@ -384,57 +504,61 @@ function update()
 
     if (ifMove)
     {
-        
+        let boxL = objectsToUpdate[0]
         if (moveDirection == 0)
         {
-            console.log("left")
-            for (const object of objectsToUpdate)
+            // console.log(splitPos)
+            
+            if (((threeWidth/2 + boxL.body.position.x)/threeWidth - Math.max(splitPosPercent, .05)) >= -.05)
             {
-                if (object.body.position.x >= -3)
+                for (const object of objectsToUpdate)
                 {
-                    const moveVec = new CANNON.Vec3(-.1, 0, 0)
-                    const forcePoint = new CANNON.Vec3(object.body.position.x , object.body.position.y + .4, object.body.position.z)
-                    // object.body.applyForce(moveDirection, forcePoint)
-                    object.body.applyImpulse(moveVec, forcePoint)
-                    object.body.angularDamping = 0
+                    
+                    // const moveVec = new CANNON.Vec3(-.1, 0, 0)
+                    // const forcePoint = new CANNON.Vec3(object.body.position.x , object.body.position.y + .4, object.body.position.z)
+                    // // object.body.applyForce(moveDirection, forcePoint)
+                    // object.body.applyImpulse(moveVec, forcePoint)
+                    // object.body.angularDamping = 0
+
+                    object.body.angularVelocity = new CANNON.Vec3(0, 0, 4)
+                    // dirLight01L.lookAt(boxL.mesh.position)
+                    // dirLight01R.lookAt(boxL.mesh.position)
+
                 }
-                // else
-                // {
-                //     ifMove = false
-                // }
+                
+            }
+            else
+            {
+                ifMove = false
             }
         }
         else if(moveDirection == 1)
         {
-            console.log("right")
-            for (const object of objectsToUpdate)
+            console.log(boxL.body.position)
+            console.log(threeWidth)
+            console.log((threeWidth/2 + boxL.body.position.x)/threeWidth)
+            if (((threeWidth/2 + boxL.body.position.x)/threeWidth - Math.min(splitPosPercent, .95)) <= .05)
             {
-                if (object.body.position.x <= 3)
+                for (const object of objectsToUpdate)
                 {
-                    const moveVec = new CANNON.Vec3(.1, 0, 0)
-                    const forcePoint = new CANNON.Vec3(object.body.position.x , object.body.position.y + .4, object.body.position.z)
-                    // object.body.applyForce(moveDirection, forcePoint)
-                    object.body.applyImpulse(moveVec, forcePoint)
-                    object.body.angularDamping = 0
+                    
+                    // const moveVec = new CANNON.Vec3(.1, 0, 0)
+                    // const forcePoint = new CANNON.Vec3(object.body.position.x , object.body.position.y + .4, object.body.position.z)
+                    // // object.body.applyForce(moveDirection, forcePoint)
+                    // object.body.applyImpulse(moveVec, forcePoint)
+                    // // object.body.angularDamping = 0
+
+                    object.body.angularVelocity = new CANNON.Vec3(0, 0, -4)
                 }
-                // else
-                // {
-                //     ifMove = false
-                // }
+                
+            }
+            else
+            {
+                ifMove = false
             }
         }
         
     }
-
-    // for (const object of objectsToUpdate)
-    // {
-    //     // console.log(mouseX)
-    //     moveDirection = new CANNON.Vec3(mouseX * 1, 0, 0)
-    //     const forcePoint = new CANNON.Vec3(object.body.position.x , object.body.position.y + .4, object.body.position.z)
-    //     // object.body.applyForce(moveDirection, forcePoint)
-    //     object.body.applyImpulse(moveDirection * elapsedTime, forcePoint)
-    //     object.body.angularDamping = 0
-    // }
 
     // Update controls
     controls.update()
