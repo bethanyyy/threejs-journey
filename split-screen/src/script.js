@@ -288,7 +288,7 @@ function initLighting()
     // Threejs is using Orth Camera internally for directional lights
     dirLight01.shadow.camera.near = 1
     dirLight01.shadow.camera.far = 30
-    dirLight01.shadow.camera.top = 5
+    dirLight01.shadow.camera.top = 14
     dirLight01.shadow.camera.bottom = -30
 
     sceneL.add(dirLight01.clone())
