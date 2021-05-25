@@ -11,7 +11,6 @@ body
     background-color: #fff7ea;
     font-family: 'Courier New', Courier, monospace;
     height: 100vh;
-    /* z-index: 1; */
 }
 
 .isolate
@@ -51,7 +50,6 @@ body
     /* opacity: .6; */
     /* border-radius: 30%; */
 
-    /* top: calc(50% - 2em); */
     top: 0;
     left: calc(50% - .2em);
 }
@@ -70,9 +68,20 @@ body
 .content
 {
     display: flex;
-    padding-left: 2em;
+    padding-left: 2.8em;
     /* text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #fff, 0 0 40px #fff, 0 0 50px #fff, 0 0 60px #fff, 0 0 70px #fff; */
     /* z-index: 1; */
+}
+
+h1
+{
+    padding-bottom: .7em;
+    text-transform: uppercase;
+    font-size: 12.5em;
+    opacity: .3;
+
+    user-select: none;
+    pointer-events: none;
 }
 
 ul{
@@ -86,13 +95,13 @@ ul{
 }
 li
 {
-    width: 1.5em;
-    height: 1.5em;
-    background-color: black;
+    width: 2.1em;
+    height: 2.1em;
+
     opacity: .3;
     border-radius: 50%;
 
-    margin-top: 2.5em;
+    margin-top: 3em;
     margin-bottom: 1em;
 
     display: block;
@@ -104,50 +113,63 @@ li
     
 }
 
-h1
-{
-    padding-bottom: 1em;
-    text-transform: uppercase;
-    font-size: 10em;
-    opacity: .3;
-
-    user-select: none;
-    pointer-events: none;
-
-    /* mix-blend-mode: lighten; */
-}
 
 #firstVerTxt
 {
     display: inherit;
 }
 
+#firstVerTxt .btnColor
+{
+    background-color: black;
+}
+
 #secondVerTxt
 {
     display: none;
     position: relative;
+
 }
 
-#secondVerTxt #leftLayer
+#secondVerTxt h1, #secondVerTxt li
 {
-    color: red;
+    opacity: 1;
 }
 
-#secondVerTxt #rightLayer
+#secondVerTxt .wrapper
+{
+    display: flex;
+}   
+
+#secondVerTxt #rightWrapper
 {
     position: absolute;
     top: 0;
-    color: green;
 
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%)
 }
 
-.leftText
+#secondVerTxt #leftLayer
 {
-    color:black;
+    color: rgb(201, 0, 0);
 }
 
-.rightText
+#secondVerTxt #rightLayer
 {
-    color:black;
+    color: white;
+    opacity: 1;
+    
+}
+
+#secondVerTxt #leftLayerBtn .btnColor
+{
+    background-color: rgb(201, 0, 0);
+}
+
+#secondVerTxt #rightLayerBtn .btnColor
+{
+    background-color: white;
+    opacity: 1;
+
+    /* clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%) */
 }

@@ -157,6 +157,7 @@ function otherPluginsSetup()
 function setUpDebugger()
 {
     gui = new dat.GUI({hideable: true})
+    gui.hide()
     
     guiLights = gui.addFolder('lights')
 
@@ -201,8 +202,8 @@ function createObjects()
     })
 
     // Creating Threejs Meshes
-    createBox(geometryCube, diffuseMat, 1, 1, 1, {x:3, y:0, z:0}, sceneL)
-    createBox(geometryCube, diffuseMat02, 1, 1, 1, {x:3, y:0, z:0}, sceneR)
+    createBox(geometryCube, diffuseMat, 1, 1, 1, {x:3, y:-.5, z:0}, sceneL)
+    createBox(geometryCube, diffuseMat02, 1, 1, 1, {x:3, y:-.5, z:0}, sceneR)
 
     // // Left Side
     // meshCubeL = new THREE.Mesh(geometryCube, diffuseMat)
@@ -212,7 +213,7 @@ function createObjects()
 
     const meshPlaneL = new THREE.Mesh(geometryPlane, planeMat)
     meshPlaneL.rotation.x = - Math.PI/2
-    meshPlaneL.position.y = -3
+    meshPlaneL.position.y = -3.7
     meshPlaneL.receiveShadow = true
 
     // groupL.add(meshCubeL)
@@ -225,7 +226,7 @@ function createObjects()
 
     const meshPlaneR = new THREE.Mesh(geometryPlane, planeMat)
     meshPlaneR.rotation.x = - Math.PI/2
-    meshPlaneR.position.y = -3
+    meshPlaneR.position.y = -3.7
     meshPlaneR.receiveShadow = true
 
     // sceneR.add(meshCubeR)
@@ -237,7 +238,7 @@ function createObjects()
     floorBody.mass = 0
     floorBody.addShape(floorShape)
     floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(- 1, 0, 0), Math.PI * 0.5)
-    floorBody.position = new CANNON.Vec3(0, -3, 0)
+    floorBody.position = new CANNON.Vec3(0, -3.7, 0)
     floorBody.material = floorMaterial
     floorBody.collisionFilterGroup = COLLGROUP2
     world.addBody(floorBody)
@@ -396,16 +397,13 @@ function updateRightLayerPos()
 
 function changeColorSet()
 {
-    const firstSet = document.querySelector('.firstSet')
-    const secSet = document.querySelector('.secondSet')
-    const leftTxt = document.querySelector('.leftText')
-    const rightTxt = document.querySelector('.rightText')
-    const liLis = document.querySelectorAll('li')
+    const firstSetBtns = document.querySelectorAll('.firstSet')
+    const secSetBtns = document.querySelectorAll('.secondSet')
 
     firstVerTxt = document.getElementById('firstVerTxt')
     secVerTxt = document.getElementById('secondVerTxt')
 
-    secVerRightLayer = document.getElementById('rightLayer')
+    secVerRightLayer = document.getElementById('rightWrapper')
 
     function onPointerDownFirstSet(){
         window.removeEventListener('pointerdown', onPointerDownBox)
@@ -421,12 +419,6 @@ function changeColorSet()
         secVerTxt.style.display = 'none'
         firstVerTxt.style.display = 'inherit'
 
-        // // leftTxt.style.color = '#000000'
-        // // rightTxt.style.color = '#000000'
-        // for (let i = 0; i < liLis.length; i++)
-        // {
-        //     liLis[i].style.backgroundColor = '#000000'
-        // }
         
         window.addEventListener('pointerup', onPointerUpFirstSet)
     }
@@ -453,12 +445,6 @@ function changeColorSet()
 
         updateRightLayerPos()
 
-        // // leftTxt.style.color = '#ff0000'
-        // // rightTxt.style.color = '#ff0000'
-        // for (let i = 0; i < liLis.length; i++)
-        // {
-        //     liLis[i].style.backgroundColor = '#ff0000'
-        // }
 
         window.addEventListener('pointerup', onPointerUpSecSet)
     }
@@ -468,8 +454,16 @@ function changeColorSet()
         window.addEventListener('pointerdown', onPointerDownBox)
     }
 
-    firstSet.addEventListener('pointerdown', onPointerDownFirstSet)
-    secSet.addEventListener('pointerdown', onPointerDownSecSet)
+    firstSetBtns.forEach(element => {
+        element.addEventListener('pointerdown', onPointerDownFirstSet)
+    });
+
+    secSetBtns.forEach(element => {
+        element.addEventListener('pointerdown', onPointerDownSecSet)
+    })
+
+    // firstSet.addEventListener('pointerdown', onPointerDownFirstSet)
+    // secSet.addEventListener('pointerdown', onPointerDownSecSet)
 }
 
 function onWindowResize()
