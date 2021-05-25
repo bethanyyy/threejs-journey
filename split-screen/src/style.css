@@ -43,6 +43,7 @@ body
 {
     position: absolute;
     cursor: ew-resize;
+    z-index: 1;
 
     width: .4em;
     height: 100vh;
@@ -114,6 +115,31 @@ h1
     pointer-events: none;
 
     /* mix-blend-mode: lighten; */
+}
+
+#firstVerTxt
+{
+    display: inherit;
+}
+
+#secondVerTxt
+{
+    display: none;
+    position: relative;
+}
+
+#secondVerTxt #leftLayer
+{
+    color: red;
+}
+
+#secondVerTxt #rightLayer
+{
+    position: absolute;
+    top: 0;
+    color: green;
+
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%)
 }
 
 .leftText

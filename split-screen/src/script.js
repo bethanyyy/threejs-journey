@@ -7,6 +7,10 @@ import TextPlugin from 'gsap/TextPlugin'
 import { Vector2, Vector3 } from 'three'
 import CANNON from 'cannon'
 
+let currColorVer = 0
+
+let firstVerTxt, secVerTxt, secVerRightLayer
+
 let canvas, camera, renderer, controls, clock
 let gui, guiLights
 let sceneL, sceneR, groupL
@@ -333,7 +337,6 @@ function onPointerDownBox(event)
 function controlSlider()
 {
     
-
     function onPointerDownSlider(event)
     {
         if (event.isPrimary === false) return
@@ -362,6 +365,11 @@ function controlSlider()
         splitPos = Math.max(0, Math.min(sizes.width, event.pageX))
         splitPosPercent = splitPos / sizes.width
         slider.style.left = splitPos - (slider.offsetWidth / 2) + "px"
+
+        if (currColorVer == 1) // second color set
+        {
+            updateRightLayerPos()
+        }
     }
 
     slider.addEventListener('pointerdown', onPointerDownSlider)
@@ -378,6 +386,14 @@ function calculateViewportWidth()
     threeWidth = threeHeight * camera.aspect;           // visible width
 }
 
+function updateRightLayerPos()
+{
+    let rightTxtPercent = (splitPos - secVerRightLayer.getBoundingClientRect().left) / secVerRightLayer.offsetWidth
+        rightTxtPercent = Math.min(Math.max(rightTxtPercent, 0), 1)
+
+        secVerRightLayer.style.clipPath = `polygon(${rightTxtPercent * 100}% 0, 100% 0, 100% 100%, ${rightTxtPercent * 100}% 100%)`
+}
+
 function changeColorSet()
 {
     const firstSet = document.querySelector('.firstSet')
@@ -386,8 +402,15 @@ function changeColorSet()
     const rightTxt = document.querySelector('.rightText')
     const liLis = document.querySelectorAll('li')
 
+    firstVerTxt = document.getElementById('firstVerTxt')
+    secVerTxt = document.getElementById('secondVerTxt')
+
+    secVerRightLayer = document.getElementById('rightLayer')
+
     function onPointerDownFirstSet(){
         window.removeEventListener('pointerdown', onPointerDownBox)
+
+        currColorVer = 0
 
         sceneL.background = new THREE.Color(parameters.sceneLColor)
         sceneR.background = new THREE.Color(parameters.sceneRColor)
@@ -395,11 +418,15 @@ function changeColorSet()
         diffuseMat.color = new THREE.Color(parameters.diffuseCol01)
         diffuseMat02.color = new THREE.Color(parameters.diffuseCol02)
 
-        rightTxt.style.color = '#000000'
-        for (let i = 0; i < liLis.length; i++)
-        {
-            liLis[i].style.backgroundColor = '#000000'
-        }
+        secVerTxt.style.display = 'none'
+        firstVerTxt.style.display = 'inherit'
+
+        // // leftTxt.style.color = '#000000'
+        // // rightTxt.style.color = '#000000'
+        // for (let i = 0; i < liLis.length; i++)
+        // {
+        //     liLis[i].style.backgroundColor = '#000000'
+        // }
         
         window.addEventListener('pointerup', onPointerUpFirstSet)
     }
@@ -413,17 +440,25 @@ function changeColorSet()
     {
         window.removeEventListener('pointerdown', onPointerDownBox)
 
+        currColorVer = 1
+
         sceneL.background = new THREE.Color(parameters02.sceneLColor)
         sceneR.background = new THREE.Color(parameters02.sceneRColor)
 
         diffuseMat.color = new THREE.Color(parameters02.diffuseCol01)
         diffuseMat02.color = new THREE.Color(parameters02.diffuseCol02)
 
-        rightTxt.style.color = '#ffffff'
-        for (let i = 0; i < liLis.length; i++)
-        {
-            liLis[i].style.backgroundColor = '#ffffff'
-        }
+        firstVerTxt.style.display = 'none'
+        secVerTxt.style.display = 'inherit'
+
+        updateRightLayerPos()
+
+        // // leftTxt.style.color = '#ff0000'
+        // // rightTxt.style.color = '#ff0000'
+        // for (let i = 0; i < liLis.length; i++)
+        // {
+        //     liLis[i].style.backgroundColor = '#ff0000'
+        // }
 
         window.addEventListener('pointerup', onPointerUpSecSet)
     }
@@ -452,6 +487,7 @@ function onWindowResize()
     slider.style.left = splitPos - (slider.offsetWidth / 2) + "px"
 
     calculateViewportWidth()
+    updateRightLayerPos()
 
     renderer.setSize(sizes.width, sizes.height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
