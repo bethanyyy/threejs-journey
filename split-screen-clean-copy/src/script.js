@@ -1,50 +1,12 @@
 import './style.css'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import * as dat from 'dat.gui'
-import gsap from 'gsap'
-import TextPlugin from 'gsap/TextPlugin'
-import { Vector2, Vector3 } from 'three'
 import CANNON from 'cannon'
 
-let currColorVer = 0
-
-let firstVerTxt, secVerTxt, secVerRightLayer
-
-let canvas, camera, renderer, controls, clock
-let gui, guiLights
-let sceneL, sceneR, groupL
-let loadingManager, textureLoader
-let meshCubeL, meshCubeR, axesHelper, meshTestL
-let dir, tempVec, localTempVec
-let diffuseMat, diffuseMat02
-
-let world, moveDirection
-let oldElapsedTime = 0
-let ifMove = false
-let velocity
-let euler = new THREE.Euler()
-let quat = new THREE.Quaternion()
-let threeHeight, threeWidth = 0
-
-let dirLight01
-
-let mouseX = 0
-let mouseY = 0
-
-const COLLGROUP1 = 1
-const COLLGROUP2 = 2
-
-const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight
-}
-
-let splitPos = sizes.width / 2
-let splitPosPercent = .5
-const slider = document.querySelector('.slider')
-
-const parameters = {
+// Global Project Variables
+let currSet = 0
+let ifMove = false // if box can move
+const objectsToUpdate = [] // list of scene objects
+const parametersFirstSet = {
     ambColor: 0xffffff,
     dir01Color: 0xffe49c,
     sceneLColor: 0x42bcf5,
@@ -52,30 +14,53 @@ const parameters = {
     diffuseCol01: 0xff73c5,
     diffuseCol02: 0x73ffc7
 }
-
-const parameters02 = {
+const parametersSecSet = {
     sceneLColor: 0xffffff,
     sceneRColor: 0x000000,
     diffuseCol01: 0x000000,
     diffuseCol02: 0xffffff
 }
 
-const boxMaterial = new CANNON.Material('box')
-const floorMaterial = new CANNON.Material('floor')
+// DOM Element
+let secSetRightLayer
+
+// Threejs Variables
+let canvas, camera, renderer, clock
+let sceneL, sceneR
+let diffuseMat, diffuseMat02
+let threeHeight, threeWidth = 0 // visible region
+const cameraDist = 22
+const sizes = {
+    width: window.innerWidth,
+    height: window.innerHeight
+}
+
+// Cannon Variables
+let world, moveDirection
+let oldElapsedTime = 0
+const COLLGROUP1 = 1
+const COLLGROUP2 = 2
+const boxCannonMat = new CANNON.Material('box')
+const floorCannonMat = new CANNON.Material('floor')
 const boxFloorContactMaterial = new CANNON.ContactMaterial(
-    boxMaterial,
-    floorMaterial,
+    boxCannonMat,
+    floorCannonMat,
     {
         friction: .1,
         restitution: .7
     }
 )
 
-const objectsToUpdate = []
+// Split Screen Variables
+let splitPos = sizes.width / 2
+let splitPosPercent = .5
+const slider = document.querySelector('.slider')
 
+// Call Init and Update
 init()
 update()
 
+// Initialize Threejs and window settings
 function init()
 {
     // Canvas
@@ -83,12 +68,10 @@ function init()
 
     // Scene
     sceneL = new THREE.Scene()
-    sceneL.background = new THREE.Color(parameters.sceneLColor)
-    groupL = new THREE.Group()
-    sceneL.add(groupL)
+    sceneL.background = new THREE.Color(parametersFirstSet.sceneLColor)
 
     sceneR = new THREE.Scene()
-    sceneR.background = new THREE.Color(parameters.sceneRColor)
+    sceneR.background = new THREE.Color(parametersFirstSet.sceneRColor)
 
     // Cannon
     world = new CANNON.World()
@@ -98,26 +81,13 @@ function init()
     // Clock
     clock = new THREE.Clock()
 
-    // AxesHelper
-    axesHelper = new THREE.AxesHelper(1)
-    // sceneL.add(axesHelper.clone())
-    // sceneR.add(axesHelper.clone())
-
     // Camera
     camera = new THREE.PerspectiveCamera(45, sizes.width / sizes.height, 0.1, 1000)
-    camera.position.set(0, 0, 22)
-    // sceneL.add(camera)
-
-    // Controls
-    controls = new OrbitControls(camera, canvas)
-    controls.enableDamping = true
-    // controls.target = mesh_ico.position
-    controls.enabled = false
+    camera.position.set(0, 0, cameraDist)
 
     // Renderer
     renderer = new THREE.WebGLRenderer({
         canvas: canvas,
-        // alpha: true,
         antialias: true,
     })
     renderer.setSize(sizes.width, sizes.height)
@@ -125,61 +95,16 @@ function init()
     renderer.setScissorTest(true)
     renderer.shadowMap.enabled = true
 
-
     // Other Initializations
-    setUpDebugger()
-    otherPluginsSetup()
-    initLoaders()
     createObjects()
     initLighting()
     calculateViewportWidth()
     
-    TrackMouseMove()
     controlSlider()
     changeColorSet()
 
-    // dir = new THREE.Vector3()
-    // tempVec = dir.subVectors(meshTestL.position, meshCubeL.position).normalize()
-    // console.log(tempVec)
-    // localTempVec = meshCubeL.worldToLocal(tempVec)
-    // console.log(localTempVec)
-
     window.addEventListener('resize', onWindowResize)
     window.addEventListener('pointerdown', onPointerDownBox)
-
-}
-
-function otherPluginsSetup()
-{
-    gsap.registerPlugin(TextPlugin)
-}
-
-function setUpDebugger()
-{
-    gui = new dat.GUI({hideable: true})
-    gui.hide()
-    
-    guiLights = gui.addFolder('lights')
-
-}
-
-function initLoaders()
-{
-    loadingManager = new THREE.LoadingManager()
-    loadingManager.onStart = () =>{
-        console.log('loading start')
-    }
-    loadingManager.onLoad = () =>{
-        console.log('loaded')
-    }
-    loadingManager.onProgress = () =>{
-        console.log('in progress')
-    }
-    loadingManager.onError = () =>{
-        console.log('error!')
-    }
-    textureLoader = new THREE.TextureLoader(loadingManager)
-    
 }
 
 function createObjects()
@@ -190,46 +115,32 @@ function createObjects()
 
     // Creating Materials
     diffuseMat = new THREE.MeshPhongMaterial({ 
-        color: parameters.diffuseCol01,
+        color: parametersFirstSet.diffuseCol01,
     })
 
     diffuseMat02 = new THREE.MeshPhongMaterial({ 
-        color: parameters.diffuseCol02,
+        color: parametersFirstSet.diffuseCol02,
     })
 
     const planeMat = new THREE.ShadowMaterial({
         opacity: .5
     })
 
-    // Creating Threejs Meshes
+    // Creating Threejs Box Meshes
     createBox(geometryCube, diffuseMat, 1, 1, 1, {x:3, y:-.5, z:0}, sceneL)
     createBox(geometryCube, diffuseMat02, 1, 1, 1, {x:3, y:-.5, z:0}, sceneR)
 
-    // // Left Side
-    // meshCubeL = new THREE.Mesh(geometryCube, diffuseMat)
-    // meshCubeL.rotation.set(Math.PI/6, Math.PI/4, 0)
-    // meshTestL = new THREE.Mesh(geometryCube, diffuseMat)
-    // meshTestL.position.set(-7, 0, 0) 
-
+    // Creating Threejs Plane Meshes
     const meshPlaneL = new THREE.Mesh(geometryPlane, planeMat)
     meshPlaneL.rotation.x = - Math.PI/2
     meshPlaneL.position.y = -3.7
     meshPlaneL.receiveShadow = true
-
-    // groupL.add(meshCubeL)
-    // // sceneL.add(meshTestL)
     sceneL.add(meshPlaneL)
-
-    // // Right Side
-    // meshCubeR = new THREE.Mesh(geometryCube, diffuseMat02)
-    // meshCubeR.rotation.set(Math.PI/6, Math.PI/4, 0)
 
     const meshPlaneR = new THREE.Mesh(geometryPlane, planeMat)
     meshPlaneR.rotation.x = - Math.PI/2
     meshPlaneR.position.y = -3.7
     meshPlaneR.receiveShadow = true
-
-    // sceneR.add(meshCubeR)
     sceneR.add(meshPlaneR)
 
     // Creating Cannon Floor Object
@@ -239,12 +150,12 @@ function createObjects()
     floorBody.addShape(floorShape)
     floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(- 1, 0, 0), Math.PI * 0.5)
     floorBody.position = new CANNON.Vec3(0, -3.7, 0)
-    floorBody.material = floorMaterial
+    floorBody.material = floorCannonMat
     floorBody.collisionFilterGroup = COLLGROUP2
     world.addBody(floorBody)
-
 }
 
+// Helper function for creating box
 function createBox(geometry, material, width, height, depth, position, scene)
 {
     const boxMesh = new THREE.Mesh(geometry, material)
@@ -257,10 +168,9 @@ function createBox(geometry, material, width, height, depth, position, scene)
     const boxBody = new CANNON.Body({
         mass: 1,
         shape: boxShape,
-        material: boxMaterial,
+        material: boxCannonMat,
         collisionFilterGroup: COLLGROUP1,
         collisionFilterMask: COLLGROUP2,
-        // angularDamping: 1
     })
     boxBody.position.copy(position)
     world.addBody(boxBody)
@@ -273,17 +183,14 @@ function createBox(geometry, material, width, height, depth, position, scene)
 
 function initLighting()
 {
-    const ambientLight = new THREE.AmbientLight(parameters.ambColor, .8)
+    const ambientLight = new THREE.AmbientLight(parametersFirstSet.ambColor, .8)
     sceneL.add(ambientLight.clone())
     sceneR.add(ambientLight.clone())
     
-    dirLight01 = new THREE.DirectionalLight(parameters.dir01Color, .5)
+    const dirLight01 = new THREE.DirectionalLight(parametersFirstSet.dir01Color, .5)
     dirLight01.position.set(5, 8, 0)
     dirLight01.castShadow = true
     dirLight01.shadowDarkness = .5
-
-    // const dirLight01Helper = new THREE.DirectionalLightHelper(dirLight01, 1)
-    // sceneR.add(dirLight01Helper)
 
     // Threejs is using Orth Camera internally for directional lights
     dirLight01.shadow.camera.near = 1
@@ -293,37 +200,17 @@ function initLighting()
 
     sceneL.add(dirLight01.clone())
     sceneR.add(dirLight01.clone())
-
-
-    // Debug
-    guiLights
-        .addColor(parameters, 'ambColor')
-        .onChange(() => {
-            ambientLight.color.set(parameters.ambColor)
-        })
-
-    guiLights
-        .addColor(parameters, 'dir01Color')
-        .onChange(() => {
-            dirLight01.color.set(parameters.dir01Color)
-        })
-
 }
 
-function TrackMouseMove()
-{
-    document.addEventListener('mousemove', (event) => {
-        mouseX = event.clientX / sizes.width - .5
-        mouseY = - (event.clientY / sizes.height - .5)
-    })
-}
-
+// Check if box is movable and set move direction
 function onPointerDownBox(event)
 {
+    // Check if the box is close to the ground
     if (objectsToUpdate[0] && Math.abs(objectsToUpdate[0].body.velocity.y) <= 1)
     {
         ifMove = true
 
+        // Decide move direction based on position relative to the split screen position
         if (event.clientX / sizes.width < splitPosPercent)
         {
             moveDirection = 0
@@ -337,7 +224,6 @@ function onPointerDownBox(event)
 
 function controlSlider()
 {
-    
     function onPointerDownSlider(event)
     {
         if (event.isPrimary === false) return
@@ -346,9 +232,6 @@ function controlSlider()
 
         window.addEventListener('pointermove', onPointerMoveSlider)
         window.addEventListener('pointerup', onPointerUpSlider)
-
-        console.log("hihi")
-
     }
 
     function onPointerUpSlider()
@@ -367,7 +250,7 @@ function controlSlider()
         splitPosPercent = splitPos / sizes.width
         slider.style.left = splitPos - (slider.offsetWidth / 2) + "px"
 
-        if (currColorVer == 1) // second color set
+        if (currSet == 1) // second color set
         {
             updateRightLayerPos()
         }
@@ -376,48 +259,46 @@ function controlSlider()
     slider.addEventListener('pointerdown', onPointerDownSlider)
 }
 
+// Calculate threejs visible region - https://stackoverflow.com/questions/13350875/three-js-width-of-view
 function calculateViewportWidth()
 {
-    const dist = 22
-
-    let vFOV = THREE.MathUtils.degToRad( camera.fov ); // convert vertical fov to radians
-
-    threeHeight = 2 * Math.tan( vFOV / 2 ) * dist; // visible height
-
-    threeWidth = threeHeight * camera.aspect;           // visible width
+    let verticalFOV = THREE.MathUtils.degToRad( camera.fov ); // convert vertical fov to radians
+    threeHeight = 2 * Math.tan( verticalFOV / 2 ) * cameraDist; // visible height
+    threeWidth = threeHeight * camera.aspect; // visible width
 }
 
+// Update mask for the layers if the second set is active
 function updateRightLayerPos()
 {
-    let rightTxtPercent = (splitPos - secVerRightLayer.getBoundingClientRect().left) / secVerRightLayer.offsetWidth
+    let rightTxtPercent = (splitPos - secSetRightLayer.getBoundingClientRect().left) / secSetRightLayer.offsetWidth
         rightTxtPercent = Math.min(Math.max(rightTxtPercent, 0), 1)
 
-        secVerRightLayer.style.clipPath = `polygon(${rightTxtPercent * 100}% 0, 100% 0, 100% 100%, ${rightTxtPercent * 100}% 100%)`
+        secSetRightLayer.style.clipPath = `polygon(${rightTxtPercent * 100}% 0, 100% 0, 100% 100%, ${rightTxtPercent * 100}% 100%)`
 }
 
 function changeColorSet()
 {
-    const firstSetBtns = document.querySelectorAll('.firstSet')
-    const secSetBtns = document.querySelectorAll('.secondSet')
+    const firstSetBtns = document.querySelectorAll('.firstSetCTA')
+    const secSetBtns = document.querySelectorAll('.secondSetCTA')
 
-    firstVerTxt = document.getElementById('firstVerTxt')
-    secVerTxt = document.getElementById('secondVerTxt')
+    const firstSet = document.getElementById('firstSet')
+    const secSet = document.getElementById('secondSet')
 
-    secVerRightLayer = document.getElementById('rightWrapper')
+    secSetRightLayer = document.getElementById('rightLayer')
 
     function onPointerDownFirstSet(){
         window.removeEventListener('pointerdown', onPointerDownBox)
 
-        currColorVer = 0
+        currSet = 0
 
-        sceneL.background = new THREE.Color(parameters.sceneLColor)
-        sceneR.background = new THREE.Color(parameters.sceneRColor)
+        sceneL.background = new THREE.Color(parametersFirstSet.sceneLColor)
+        sceneR.background = new THREE.Color(parametersFirstSet.sceneRColor)
 
-        diffuseMat.color = new THREE.Color(parameters.diffuseCol01)
-        diffuseMat02.color = new THREE.Color(parameters.diffuseCol02)
+        diffuseMat.color = new THREE.Color(parametersFirstSet.diffuseCol01)
+        diffuseMat02.color = new THREE.Color(parametersFirstSet.diffuseCol02)
 
-        secVerTxt.style.display = 'none'
-        firstVerTxt.style.display = 'inherit'
+        secSet.style.display = 'none'
+        firstSet.style.display = 'inherit'
 
         
         window.addEventListener('pointerup', onPointerUpFirstSet)
@@ -432,19 +313,18 @@ function changeColorSet()
     {
         window.removeEventListener('pointerdown', onPointerDownBox)
 
-        currColorVer = 1
+        currSet = 1
 
-        sceneL.background = new THREE.Color(parameters02.sceneLColor)
-        sceneR.background = new THREE.Color(parameters02.sceneRColor)
+        sceneL.background = new THREE.Color(parametersSecSet.sceneLColor)
+        sceneR.background = new THREE.Color(parametersSecSet.sceneRColor)
 
-        diffuseMat.color = new THREE.Color(parameters02.diffuseCol01)
-        diffuseMat02.color = new THREE.Color(parameters02.diffuseCol02)
+        diffuseMat.color = new THREE.Color(parametersSecSet.diffuseCol01)
+        diffuseMat02.color = new THREE.Color(parametersSecSet.diffuseCol02)
 
-        firstVerTxt.style.display = 'none'
-        secVerTxt.style.display = 'inherit'
+        firstSet.style.display = 'none'
+        secSet.style.display = 'inherit'
 
         updateRightLayerPos()
-
 
         window.addEventListener('pointerup', onPointerUpSecSet)
     }
@@ -461,9 +341,6 @@ function changeColorSet()
     secSetBtns.forEach(element => {
         element.addEventListener('pointerdown', onPointerDownSecSet)
     })
-
-    // firstSet.addEventListener('pointerdown', onPointerDownFirstSet)
-    // secSet.addEventListener('pointerdown', onPointerDownSecSet)
 }
 
 function onWindowResize()
@@ -493,37 +370,7 @@ function update()
     const deltaTime = elapsedTime - oldElapsedTime
     oldElapsedTime = elapsedTime
 
-    // console.log(axesHelper.)
-
-    // let worldXVector = new Vector3(-3, 0, 0)
-    // let localXVector = meshCubeL.worldToLocal(worldXVector)
-    // console.log(worldXVector)
-    // console.log(localXVector)
-
-    // let dir = new THREE.Vector3()
-    // // console.log(meshTestL.position)
-    // tempVec = dir.subVectors(meshTestL.position, meshCubeL.position)
-    // localTempVec = meshCubeL.worldToLocal(tempVec)
-    // console.log(tempVec)
-    
-
-    // meshCubeL.position.x -= .1
-    // meshCubeL.translateOnAxis(localTempVec, .1)
-
-    // groupL.translateX(-.1)
-    // if (groupL.position.x > -10)
-    // {
-    //     // console.log("test " + groupL.position.x)
-    //     groupL.translateX(-.1)
-        
-    //     // groupL.lookAt(0, 0, 10)
-    //     console.log(groupL.position)
-    //     // groupL.position.z = 0
-
-    //     groupL.rotateOnAxis(new THREE.Vector3(-1, 0, 0), -.1)
-    // }
-
-    // Update Physics
+    // Update Cannon Physics
     world.step(1/60, deltaTime, 3)
 
     for (const object of objectsToUpdate)
@@ -537,25 +384,12 @@ function update()
         let boxL = objectsToUpdate[0]
         if (moveDirection == 0)
         {
-            // console.log(splitPos)
-            
             if (((threeWidth/2 + boxL.body.position.x)/threeWidth - Math.max(splitPosPercent, .05)) >= -.05)
             {
                 for (const object of objectsToUpdate)
                 {
-                    
-                    // const moveVec = new CANNON.Vec3(-.1, 0, 0)
-                    // const forcePoint = new CANNON.Vec3(object.body.position.x , object.body.position.y + .4, object.body.position.z)
-                    // // object.body.applyForce(moveDirection, forcePoint)
-                    // object.body.applyImpulse(moveVec, forcePoint)
-                    // object.body.angularDamping = 0
-
                     object.body.angularVelocity = new CANNON.Vec3(0, 0, 4)
-                    // dirLight01L.lookAt(boxL.mesh.position)
-                    // dirLight01R.lookAt(boxL.mesh.position)
-
                 }
-                
             }
             else
             {
@@ -564,34 +398,19 @@ function update()
         }
         else if(moveDirection == 1)
         {
-            console.log(boxL.body.position)
-            console.log(threeWidth)
-            console.log((threeWidth/2 + boxL.body.position.x)/threeWidth)
             if (((threeWidth/2 + boxL.body.position.x)/threeWidth - Math.min(splitPosPercent, .95)) <= .05)
             {
                 for (const object of objectsToUpdate)
                 {
-                    
-                    // const moveVec = new CANNON.Vec3(.1, 0, 0)
-                    // const forcePoint = new CANNON.Vec3(object.body.position.x , object.body.position.y + .4, object.body.position.z)
-                    // // object.body.applyForce(moveDirection, forcePoint)
-                    // object.body.applyImpulse(moveVec, forcePoint)
-                    // // object.body.angularDamping = 0
-
                     object.body.angularVelocity = new CANNON.Vec3(0, 0, -4)
                 }
-                
             }
             else
             {
                 ifMove = false
             }
         }
-        
     }
-
-    // Update controls
-    controls.update()
 
     // Render
     renderer.setScissor(0, 0, splitPos, sizes.height)

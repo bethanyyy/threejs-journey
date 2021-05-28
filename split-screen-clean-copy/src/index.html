@@ -6,39 +6,36 @@
     <title>Split Screen</title>
 </head>
 <body>
-    <div class="isolate">
-        <div class="container">
-            <div class="slider"></div>
-            <div class="content">
-                <div id="firstVerTxt">
-                    <h1>Test</h1>
-                    <ul>
-                        <li class="firstSet btnColor"></li>
-                        <li class="secondSet btnColor"></li>
+    <div class="container">
+        <div class="slider"></div>
+        <div class="content">
+            <div id="firstSet">
+                <h1>Test</h1>
+                <ul>
+                    <li class="firstSetCTA"></li>
+                    <li class="secondSetCTA"></li>
+                </ul>
+            </div>
+
+            <div id="secondSet">
+                <div id="leftLayer" class="layer">
+                    <h1 id="leftLayerTxt">Test</h1>
+                    <ul id="leftLayerBtn">
+                        <li class="firstSetCTA"></li>
+                        <li class="secondSetCTA"></li>
                     </ul>
                 </div>
-
-                <div id="secondVerTxt">
-                    <div id="leftWrapper" class="wrapper">
-                        <h1 id="leftLayer">Test</h1>
-                        <ul id="leftLayerBtn">
-                            <li class="firstSet btnColor"></li>
-                            <li class="secondSet btnColor"></li>
-                        </ul>
-                    </div>
-                    
-                    <div id="rightWrapper" class="wrapper">
-                        <h1 id="rightLayer">Test</h1>
-                        <ul id="rightLayerBtn">
-                            <li class="firstSet btnColor"></li>
-                            <li class="secondSet btnColor"></li>
-                        </ul>
-                    </div>
+                
+                <div id="rightLayer" class="layer">
+                    <h1 id="rightLayerTxt">Test</h1>
+                    <ul id="rightLayerBtn">
+                        <li class="firstSetCTA"></li>
+                        <li class="secondSetCTA"></li>
+                    </ul>
                 </div>
             </div>
         </div>
-        <canvas class="webgl"></canvas>
     </div>
-    
+    <canvas class="webgl"></canvas>
 </body>
 </html>
