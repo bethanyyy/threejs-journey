@@ -70,60 +70,17 @@ window.addEventListener('resize', () =>
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
 
-/** --------------------------- Texture Loader --------------------------- */
-const loadingManager = new THREE.LoadingManager()
-loadingManager.onStart = () =>{
-    console.log('loading start')
-}
-loadingManager.onLoad = () =>{
-    console.log('loaded')
-}
-loadingManager.onProgress = () =>{
-    console.log('in progress')
-}
-loadingManager.onError = () =>{
-    console.log('error!')
-}
-const textureLoader = new THREE.TextureLoader(loadingManager)
-
-const colorTexture = textureLoader.load('/textures/door/color.jpg')
-// const colorTexture = textureLoader.load('/textures/checkerboard-1024x1024.png')
-const normalTexture = textureLoader.load('/textures/door/normal.jpg')
-const alphaTexture = textureLoader.load('/textures/door/alpha.jpg')
-const heightTexture = textureLoader.load('/textures/door/height.jpg')
-const aoTexture = textureLoader.load('/textures/door/ambientOcclusion.jpg')
-const metalnessTexture = textureLoader.load('/textures/door/metalness.jpg')
-const roughnessTexture = textureLoader.load('/textures/door/roughness.jpg')
-
-colorTexture.minFilter = THREE.NearestFilter
-// colorTexture.generateMipmaps = false
-// colorTexture.magFilter = THREE.NearestFilter
-
 /** --------------------------- Object --------------------------- */
 const geometry_cube = new THREE.BoxGeometry(1, 1, 1, 1, 0, 1)
-const geometry_torus = new THREE.TorusBufferGeometry(1, .35, 16, 16)
 const geometry_ico = new THREE.IcosahedronBufferGeometry(.5,1)
 
-// console.log(geometry.attributes.uv)
-
 const material = new THREE.MeshPhongMaterial({ 
-    map: colorTexture,
+    color: 0xde9018,
     shininess: 500,
-    // specular: 0x038cfc,
     wireframe: true
-    
-    // alphaMap: alphaTexture
  })
 
-const material_ico = new THREE.MeshPhongMaterial({
-    color: 0xffffff,
-     shininess: 500,
-     specular: 0xffffff,
-     wireframe: true,
-     transparent: true,
- })
-
- const material_toon01 = new THREE.MeshPhongMaterial({
+ const material_cube01 = new THREE.MeshPhongMaterial({
     color: 0xffffff,
      shininess: 500,
      specular: 0xf542d7,
@@ -131,7 +88,7 @@ const material_ico = new THREE.MeshPhongMaterial({
      transparent: true,
      opacity: .6
  })
- const material_toon02 = new THREE.MeshPhongMaterial({
+ const material_cube02 = new THREE.MeshPhongMaterial({
     color: 0xff242f,
      shininess: 500,
      specular: 0xf542d7,
@@ -139,7 +96,7 @@ const material_ico = new THREE.MeshPhongMaterial({
      transparent: true,
      opacity: .8
  })
- const material_toon03 = new THREE.MeshPhongMaterial({
+ const material_cube03 = new THREE.MeshPhongMaterial({
     color: 0x8c34b3,
      shininess: 500,
      specular: 0xf542d7,
@@ -147,28 +104,20 @@ const material_ico = new THREE.MeshPhongMaterial({
      transparent: true,
      opacity: .5
  })
-//  material_toon.color.set(0xfcdf03)
-
-const mesh_cube = new THREE.Mesh(geometry_cube, material)
-const mesh_cube02 = new THREE.Mesh(geometry_cube, material_toon01)
-mesh_cube02.position.set(1, .25, 0)
-mesh_cube02.scale.set(1, 1.5, 1)
 
 const mesh_ico = new THREE.Mesh(geometry_ico, material)
-
 scene.add(mesh_ico)
 
-// scene.add(group01)
-
-let mat_toons = [material_toon01, material_toon02, material_toon03]
+let mat_cubes = [material_cube01, material_cube02, material_cube03]
 
 let generated_cubes = []
+let cubes_speed = []
 
 for (let i = 0; i < 200; i++)
 {
     let rand_mat_idx = Math.round(Math.random()*2)
 
-    let mesh_cube_new = new THREE.Mesh(geometry_cube, mat_toons[rand_mat_idx])
+    let mesh_cube_new = new THREE.Mesh(geometry_cube, mat_cubes[rand_mat_idx])
 
     let rand_num_x = ((Math.random() - .5) * 21) * 4
     let rand_num_y = ((Math.random() - .5) * 21) * 4
@@ -183,12 +132,11 @@ for (let i = 0; i < 200; i++)
     group01.add(mesh_cube_new)
     scene.add(group01)
     generated_cubes.push(mesh_cube_new)
-}
-console.log(generated_cubes.length)
 
-const mesh_torus = new THREE.Mesh(geometry_torus, material_toon01)
-mesh_torus.position.set(-2, 0, 0)
-// scene.add(mesh_torus)
+    let rand_speed = Math.random() * 4 + .5
+    cubes_speed.push(rand_speed)
+}
+
 
 /** --------------------------- Camera --------------------------- */
 // Base camera
@@ -206,13 +154,10 @@ const pointLight01 = new THREE.PointLight(parameters.point01Color, .5)
 pointLight01.position.set(2, 3, 4)
 scene.add(pointLight01)
 
-const pointLight01Helper = new THREE.PointLightHelper(pointLight01, 1)
-// scene.add(pointLight01Helper)
-
 /** --------------------------- Controls --------------------------- */
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
-// controls.target = mesh_ico.position
+controls.enabled = false
 
 /** --------------------------- Mouse --------------------------- */
 let mouseX = 0
@@ -223,63 +168,48 @@ document.addEventListener('mousemove', (event) => {
     mouseY = - (event.clientY / sizes.height - .5)
 })
 
-// window.addEventListener("wheel", onMouseWheel)
-
-// let scroll_y = 0
-// let position = 0
-
-// function onMouseWheel(event)
-// {
-//     // console.log(event.deltaY)
-//     y = event.deltaY * .0007
-// }
-
 /** --------------------------- Animating Text --------------------------- */
 const p = document.querySelector('p')
 const tl = gsap.timeline({ repeat: 1, yoyo: true, repeatDelay: 5})
-
-// clip path
-// tl.to(p, {duration: 3, clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)', x: '20px'})
 
 // typewriter effect
 tl.to('p', {duration: 2, text: '>>> getting closer...?', ease: 'none', x: '5px'})
 
 /** --------------------------- Animate --------------------------- */
-const clock = new THREE.Clock()
+const clockRotation = new THREE.Clock()
+const clockMouse = new THREE.Clock()
 
 const tick = () =>
 {
-    const elapsedTime = clock.getElapsedTime()
+    if (Math.abs(mouseY) < .002)
+    {
+        // restart clock
+        clockMouse.start()
+    }
 
-    // let y_movement_cubes = mouseY * elapsedTime*.003
-    // console.log("ymovement:")
+    const elapsedTimeRotation = clockRotation.getElapsedTime()
+    const elapsedTimeMouse = clockMouse.getElapsedTime()
 
     for (let i = 0; i < generated_cubes.length; i++)
     {
-        // generated_cubes[i].position.y += Math.sin(mouseY * elapsedTime)*.005
-        // generated_cubes[i].position.x += Math.cos(mouseY * elapsedTime)*.005
-        // mouseY *= .9
 
-        let y_movement_cubes = mouseY * elapsedTime*.006
-        let x_movement_cubes = mouseX * elapsedTime*.006
+        let y_movement_cubes = mouseY * elapsedTimeMouse*.01
 
-        generated_cubes[i].position.y += Math.min(.1,y_movement_cubes * 3)
-        generated_cubes[i].position.z += Math.min(.7,y_movement_cubes) * .5
-        generated_cubes[i].position.x += - Math.min(.7, x_movement_cubes)
+        generated_cubes[i].position.y += y_movement_cubes * cubes_speed[i]
+
+        generated_cubes[i].position.y = Math.min(Math.max(generated_cubes[i].position.y, -150), 30)
         
     }
 
-    // mesh_ico.position.x = Math.sin(elapsedTime)
-    mesh_ico.position.y = Math.cos(elapsedTime) * 4 - 5
+    mesh_ico.position.y = Math.cos(elapsedTimeRotation) * 4 - 5
 
-    group01.rotation.y = elapsedTime * .02
+    group01.rotation.y = elapsedTimeRotation * .02
 
-    mesh_ico.rotation.y = elapsedTime * .1
-    mesh_ico.rotation.x = elapsedTime * .1
-    mesh_ico.rotation.z = elapsedTime * .1
+    mesh_ico.rotation.y = elapsedTimeRotation * .1
+    mesh_ico.rotation.x = elapsedTimeRotation * .1
+    mesh_ico.rotation.z = elapsedTimeRotation * .1
 
     // Update controls
-    // controls.target = mesh_ico.position
     controls.update()
 
     // Render

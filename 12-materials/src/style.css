@@ -22,14 +22,6 @@ body
     outline: none;
 }
 
-/* .container
-{
-    width: 100%;
-    height: 100vh;
-    padding-top: 10rem;
-    padding-left: 10rem;
-} */
-
 .container
 {
     width: 100%;
@@ -45,7 +37,6 @@ body
 
 p
 {
-    /* clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); */
     display: inline-block; /* don't take up 100% of parent width */
     font-size: 1.1rem;
 }
